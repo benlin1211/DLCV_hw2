@@ -4,3 +4,5 @@
 hw2_data/*
 *png
 *jpg
+*.zip
+*.ckpt
