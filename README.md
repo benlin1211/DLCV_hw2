@@ -18,9 +18,9 @@ You can run the following command to install all the packages listed in the requ
 
     conda create --name dlcv-hw2 python=3.8
     conda activate dlcv-hw2
-    pip3 install --no-cache-dir -r requirements.txt
+    pip3 install --target=/home/zhongwei/.conda/envs/DLCV-hw2 -r requirements.txt
 
-https://stackoverflow.com/questions/40183108/python-packages-hash-not-matching-whilst-installing-using-pip
+https://stackoverflow.com/questions/2915471/install-a-python-package-into-a-different-directory-using-pip
 如果少了任何 module，自己手動 pip install 最快。
 
 If you have 2 GPUs, please do the following manually: (the training is based on CUDA:1)
