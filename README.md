@@ -47,5 +47,7 @@ If you have any problems related to HW2, you may
 - Contact TAs by e-mail ([ntudlcv@gmail.com](mailto:ntudlcv@gmail.com))
 - Post your question under hw2 FAQ section in FB group.(But TAs won't answer your question on FB.)
 
+# Troubleshooting
+<module> could not be resolved by pylance (in VS code): Select intepreter（在VS code右下角）
 
 
