@@ -50,4 +50,7 @@ If you have any problems related to HW2, you may
 # Troubleshooting
 <module> could not be resolved by pylance (in VS code): Select intepreter（在VS code右下角）
 
+ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE.    
+https://stackoverflow.com/questions/40183108/python-packages-hash-not-matching-whilst-installing-using-pip
+
 
