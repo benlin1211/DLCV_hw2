@@ -176,8 +176,6 @@ class TrainerGAN():
         self.opt_G = torch.optim.Adam(self.G.parameters(), lr=self.config["lr"], betas=(0.5, 0.999))
         
         self.dataloader = None
-        self.log_dir = os.path.join(self.config["log_dir"], 'logs')
-        self.ckpt_dir = os.path.join(self.config["data_dir"], 'checkpoints')
         
         FORMAT = '%(asctime)s - %(levelname)s: %(message)s'
         logging.basicConfig(level=logging.INFO, 
@@ -191,15 +189,8 @@ class TrainerGAN():
         """
         Use this funciton to prepare function
         """
-        os.makedirs(self.log_dir, exist_ok=True)
-        os.makedirs(self.ckpt_dir, exist_ok=True)
-        
-        # update dir by time
-        time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-        self.log_dir = os.path.join(self.log_dir, time+f'_{self.config["model_type"]}')
-        self.ckpt_dir = os.path.join(self.ckpt_dir, time+f'_{self.config["model_type"]}')
-        os.makedirs(self.log_dir)
-        os.makedirs(self.ckpt_dir)
+        os.makedirs(self.config["ckpt_dir"], exist_ok=True)
+        os.makedirs(self.config["ckpt_dir"], exist_ok=True)
         
         # create dataset by the above function
         dataset = get_dataset(self.config["data_dir"])
@@ -272,7 +263,7 @@ class TrainerGAN():
 
             self.G.eval()
             f_imgs_sample = (self.G(self.z_samples).data + 1) / 2.0
-            filename = os.path.join(self.log_dir, f'Epoch_{epoch+1:03d}.jpg')
+            filename = os.path.join(self.config["ckpt_dir"], f'Epoch_{epoch+1:03d}.jpg')
             torchvision.utils.save_image(f_imgs_sample, filename, nrow=10)
             logging.info(f'Save some samples to {filename}.')
 
@@ -286,8 +277,8 @@ class TrainerGAN():
 
             if (e+1) % 5 == 0 or e == 0:
                 # Save the checkpoints.
-                torch.save(self.G.state_dict(), os.path.join(self.ckpt_dir, f'G_{e}.pth'))
-                torch.save(self.D.state_dict(), os.path.join(self.ckpt_dir, f'D_{e}.pth'))
+                torch.save(self.G.state_dict(), os.path.join(self.config["ckpt_dir"], f'G_{e}.pth'))
+                torch.save(self.D.state_dict(), os.path.join(self.config["ckpt_dir"], f'D_{e}.pth'))
 
         logging.info('Finish training')
 
@@ -314,12 +305,6 @@ class TrainerGAN():
             plt.show()
 
 
-def create_dir(directory):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-
-
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description="hw 2-1 train",
@@ -327,7 +312,7 @@ if __name__ == '__main__':
     parser.add_argument("data_dir", help="Training data location")
     parser.add_argument("--mode", help="train or test", default="train")   
     parser.add_argument("--log_dir", help="Log location", default="log2-1")
-    parser.add_argument("--checkpth", help="Checkpoint location", default="ckpt2-1")
+    parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1")
     parser.add_argument("--batch_size", help="batch size", type=int, default=128)
     parser.add_argument("--model_type", help="GAN or WGAN-GP", default="GAN")
     parser.add_argument("--learning_rate", help="learning rate", type=float, default=1e-4)
@@ -342,8 +327,7 @@ if __name__ == '__main__':
     print(vars(args))
     
     same_seeds(2022)
-    create_dir(args.log_dir)
-    create_dir(args.checkpth)
+
 
     if torch.cuda.is_available():
         if torch.cuda.device_count()==2:
@@ -365,6 +349,7 @@ if __name__ == '__main__':
         "z_dim": args.z_dim,
         "data_dir": args.data_dir, # define in the environment setting
         "log_dir": args.log_dir,
+        "ckpt_dir": args.ckpt_dir,
     }
     trainer = TrainerGAN(config)
     trainer.train()
