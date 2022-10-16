@@ -183,7 +183,7 @@ class TrainerGAN():
                             datefmt='%Y-%m-%d %H:%M')
         
         self.steps = 0
-        self.z_samples = Variable(torch.randn(100, self.config["z_dim"])).cuda()
+        self.z_samples = Variable(torch.randn(64, self.config["z_dim"])).cuda()
         
     def prepare_environment(self):
         """
@@ -264,14 +264,14 @@ class TrainerGAN():
             self.G.eval()
             f_imgs_sample = (self.G(self.z_samples).data + 1) / 2.0
             filename = os.path.join(self.config["ckpt_dir"], f'Epoch_{epoch+1:03d}.jpg')
-            torchvision.utils.save_image(f_imgs_sample, filename, nrow=10)
+            torchvision.utils.save_image(f_imgs_sample, filename, nrow=8)
             logging.info(f'Save some samples to {filename}.')
 
             # Show some images during training.
-            grid_img = torchvision.utils.make_grid(f_imgs_sample.cpu(), nrow=10)
-            plt.figure(figsize=(10,10))
-            plt.imshow(grid_img.permute(1, 2, 0))
-            plt.show()
+            # grid_img = torchvision.utils.make_grid(f_imgs_sample.cpu(), nrow=8)
+            # plt.figure(figsize=(10,10))
+            # plt.imshow(grid_img.permute(1, 2, 0))
+            # plt.show()
 
             self.G.train()
 
@@ -293,9 +293,9 @@ class TrainerGAN():
         imgs = (self.G(z).data + 1) / 2.0
         
         # Save 1000 imgs
-        os.makedirs('output', exist_ok=True)
+        os.makedirs( self.config["output_dir"], exist_ok=True)
         for i in range(n_generate):
-            torchvision.utils.save_image(imgs[i], f'output/{i+1}.jpg')
+            torchvision.utils.save_image(imgs[i], os.path.join( self.config["output_dir"],f'{i+1}.jpg'))
         
         if show:
             row, col = n_output//10 + 1, 10
@@ -309,7 +309,8 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description="hw 2-1 train",
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("data_dir", help="Training data location")
+    parser.add_argument("output_dir", help="Training data location")
+    parser.add_argument("--data_dir", help="Training data location", default="./hw2_data/face/train")
     parser.add_argument("--mode", help="train or test", default="train")   
     parser.add_argument("--log_dir", help="Log location", default="log2-1")
     parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1")
@@ -317,10 +318,10 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", help="batch size", type=int, default=128)
     parser.add_argument("--model_type", help="GAN or WGAN-GP", default="GAN")
     parser.add_argument("--learning_rate", help="learning rate", type=float, default=1e-4)
-    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=50)
-    parser.add_argument("--n_critic", help="n_critic", type=int, default=3)
+    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=80)
+    parser.add_argument("--n_critic", help="n_critic", type=int, default=2)
 
-    parser.add_argument("--z_dim", help="z_dim", type=int, default=100)
+    parser.add_argument("--z_dim", help="Latent space dimension", type=int, default=100)
 
     parser.add_argument("--scheduler_lr_decay_step", help="scheduler learning rate decay step ", type=int, default=1)
     parser.add_argument("--scheduler_lr_decay_ratio", help="scheduler learning rate decay ratio ", type=float, default=0.99)
@@ -342,20 +343,20 @@ if __name__ == '__main__':
 
 
     config = {
+        "output_dir": args.output_dir,
+        "data_dir": args.data_dir,
+        "log_dir": args.log_dir,
+        "ckpt_dir": args.ckpt_dir,
+
         "model_type": args.model_type,
         "batch_size": args.batch_size,
         "lr": args.learning_rate,
         "n_epoch": args.n_epoch,
         "n_critic": args.n_critic,
         "z_dim": args.z_dim,
-        "data_dir": args.data_dir, # define in the environment setting
-        "log_dir": args.log_dir,
-        "ckpt_dir": args.ckpt_dir,
         "save_every": args.save_every,
     }
     trainer = TrainerGAN(config)
+
     trainer.train()
-    trainer.inference(f'{args.data_dir}/checkpoints/{args.checkpth}',show = True) # you have to modify the path when running this line
-
-
-
+    trainer.inference(f'{args.ckpt_dir}/G_79.pth',show = True) # you have to modify the path when running this line
