@@ -30,6 +30,10 @@ If you have 2 GPUs, please do the following manually: (the training is based on 
 ### List all environments
 
     conda info --envs
+    
+### Check all package environment
+
+    conda list -n DLCV-hw2
 
 ### Close an environment
 
