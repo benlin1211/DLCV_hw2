@@ -275,7 +275,7 @@ class TrainerGAN():
 
             self.G.train()
 
-            if (e+1) % 5 == 0 or e == 0:
+            if (e+1) % config["save_every"] == 0 or e == 0:
                 # Save the checkpoints.
                 torch.save(self.G.state_dict(), os.path.join(self.config["ckpt_dir"], f'G_{e}.pth'))
                 torch.save(self.D.state_dict(), os.path.join(self.config["ckpt_dir"], f'D_{e}.pth'))
@@ -313,6 +313,7 @@ if __name__ == '__main__':
     parser.add_argument("--mode", help="train or test", default="train")   
     parser.add_argument("--log_dir", help="Log location", default="log2-1")
     parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1")
+    parser.add_argument("--save_every", help="Save model every k epochs", type=int, default=5)
     parser.add_argument("--batch_size", help="batch size", type=int, default=128)
     parser.add_argument("--model_type", help="GAN or WGAN-GP", default="GAN")
     parser.add_argument("--learning_rate", help="learning rate", type=float, default=1e-4)
@@ -350,6 +351,7 @@ if __name__ == '__main__':
         "data_dir": args.data_dir, # define in the environment setting
         "log_dir": args.log_dir,
         "ckpt_dir": args.ckpt_dir,
+        "save_every": args.save_every,
     }
     trainer = TrainerGAN(config)
     trainer.train()

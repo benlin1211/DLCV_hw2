@@ -6,3 +6,6 @@ hw2_data/*
 *jpg
 *.zip
 *.ckpt
+*.pth
+ckpt*/
+log*/
