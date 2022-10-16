@@ -30,6 +30,10 @@ If you have 2 GPUs, please do the following manually: (the training is based on 
 ### List all environments
 
     conda info --envs
+    
+### Check all package environment
+
+    conda list -n DLCV-hw2
 
 ### Close an environment
 
@@ -49,5 +53,8 @@ If you have any problems related to HW2, you may
 
 # Troubleshooting
 <module> could not be resolved by pylance (in VS code): Select intepreter（在VS code右下角）
+
+ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE.    
+https://stackoverflow.com/questions/40183108/python-packages-hash-not-matching-whilst-installing-using-pip
 
 
