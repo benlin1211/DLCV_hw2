@@ -18,7 +18,7 @@ You can run the following command to install all the packages listed in the requ
 
     conda create --name dlcv-hw2 python=3.8
     conda activate dlcv-hw2
-    pip3 install --target=/home/zhongwei/.conda/envs/DLCV-hw2 -r requirements.txt
+    pip3 install --target=/home/zhongwei/.conda/envs/DLCV-hw2/bin/ -r requirements.txt
 
 https://stackoverflow.com/questions/2915471/install-a-python-package-into-a-different-directory-using-pip
 如果少了任何 module，自己手動 pip install 最快。
@@ -45,6 +45,16 @@ If you have 2 GPUs, please do the following manually: (the training is based on 
 
 Note that using packages with different versions will very likely lead to compatibility issues, so make sure that you install the correct version if one is specified above. E-mail or ask the TAs first if you want to import other packages.
 
+# Train
+## 2-1
+
+    bash ./train2-1.sh ./output_images
+    
+# Eval
+## 2-1
+
+    bash ./eval2-1.sh ./output_images
+
 # Q&A
 If you have any problems related to HW2, you may
 - Use TA hours
@@ -54,7 +64,16 @@ If you have any problems related to HW2, you may
 # Troubleshooting
 <module> could not be resolved by pylance (in VS code): Select intepreter（在VS code右下角）
 
-ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE.    
+### pip installing in global site-packages instead of virtualenv.
+https://stackoverflow.com/questions/20952797/pip-installing-in-global-site-packages-instead-of-virtualenv
+**Solution:**
+See conda virtual environment package location.
+https://stackoverflow.com/questions/35709497/anaconda-python-where-are-the-virtual-environments-stored
+    source activate DLCV-hw2
+    which python
+output: /home/zhongwei/.conda/envs/DLCV-hw2/bin/python
+    
+ 
+### ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE.    
 https://stackoverflow.com/questions/40183108/python-packages-hash-not-matching-whilst-installing-using-pip
-
 
