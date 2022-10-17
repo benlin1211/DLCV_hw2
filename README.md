@@ -68,10 +68,14 @@ If you have any problems related to HW2, you may
 https://stackoverflow.com/questions/20952797/pip-installing-in-global-site-packages-instead-of-virtualenv
     
 **Solution: See conda virtual environment package location.**
+    
 https://stackoverflow.com/questions/35709497/anaconda-python-where-are-the-virtual-environments-stored
+    
     source activate DLCV-hw2
     which python
+    
 output: /home/zhongwei/.conda/envs/DLCV-hw2/bin/python
+    
 Then pip3 install at your virtual environment package location.
     
  
