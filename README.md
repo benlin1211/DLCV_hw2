@@ -64,7 +64,7 @@ If you have any problems related to HW2, you may
 # Troubleshooting
 <module> could not be resolved by pylance (in VS code): Select intepreter（在VS code右下角）
 
-### pip installing in global site-packages instead of virtualenv.
+### How to pip installing site-packages in virtualenv instead of global?
 https://stackoverflow.com/questions/20952797/pip-installing-in-global-site-packages-instead-of-virtualenv
     
 **Solution: See conda virtual environment package location.**
