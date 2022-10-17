@@ -66,7 +66,7 @@ If you have any problems related to HW2, you may
 
 ### pip installing in global site-packages instead of virtualenv.
 https://stackoverflow.com/questions/20952797/pip-installing-in-global-site-packages-instead-of-virtualenv
-**Solution:**
+#### Solution
 See conda virtual environment package location.
 https://stackoverflow.com/questions/35709497/anaconda-python-where-are-the-virtual-environments-stored
     source activate DLCV-hw2
