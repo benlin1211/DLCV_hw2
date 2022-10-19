@@ -4,6 +4,7 @@
 hw2_data/*
 *png
 *jpg
+*gif
 *.zip
 *.ckpt
 *.pth

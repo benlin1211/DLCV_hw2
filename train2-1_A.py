@@ -184,6 +184,11 @@ class TrainerGAN():
         
         self.steps = 0
         self.z_samples = Variable(torch.randn(64, self.config["z_dim"])).cuda()
+
+    def print_model(self):
+        print("Model A info:")
+        print(self.G)
+        print(self.D)
         
     def prepare_environment(self):
         """
@@ -231,7 +236,7 @@ class TrainerGAN():
                 r_logit = self.D(r_imgs)
                 f_logit = self.D(f_imgs)
 
-                # Loss for discriminator
+                # Loss for discriminatolsr
                 r_loss = self.loss(r_logit, r_label)
                 f_loss = self.loss(f_logit, f_label)
                 loss_D = (r_loss + f_loss) / 2
@@ -309,17 +314,16 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description="hw 2-1 train",
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("output_dir", help="Training data location")
+    parser.add_argument("output_dir", help="Output data location")
     parser.add_argument("--data_dir", help="Training data location", default="./hw2_data/face/train")
     parser.add_argument("--mode", help="train or test", default="train")   
     parser.add_argument("--log_dir", help="Log location", default="log2-1")
     parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1")
     parser.add_argument("--save_every", help="Save model every k epochs", type=int, default=5)
     parser.add_argument("--batch_size", help="batch size", type=int, default=128)
-    parser.add_argument("--model_type", help="GAN or WGAN-GP", default="GAN")
     parser.add_argument("--learning_rate", help="learning rate", type=float, default=1e-4)
     parser.add_argument("--n_epoch", help="n_epoch", type=int, default=80)
-    parser.add_argument("--n_critic", help="n_critic", type=int, default=2)
+    parser.add_argument("--n_critic", help="Update generater for every n epochs.", type=int, default=2)
 
     parser.add_argument("--z_dim", help="Latent space dimension", type=int, default=100)
 
@@ -348,7 +352,6 @@ if __name__ == '__main__':
         "log_dir": args.log_dir,
         "ckpt_dir": args.ckpt_dir,
 
-        "model_type": args.model_type,
         "batch_size": args.batch_size,
         "lr": args.learning_rate,
         "n_epoch": args.n_epoch,
@@ -357,6 +360,8 @@ if __name__ == '__main__':
         "save_every": args.save_every,
     }
     trainer = TrainerGAN(config)
-
-    trainer.train()
-    trainer.inference(f'{args.ckpt_dir}/G_79.pth',show = True) # you have to modify the path when running this line
+    trainer.print_model()
+    if args.mode == "train":
+        trainer.train()
+    if args.mode == "test":
+        trainer.inference(f'{args.ckpt_dir}/G_{args.n_epoch-1}.pth',show = True) # you have to modify the path when running this line
