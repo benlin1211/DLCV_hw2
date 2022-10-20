@@ -270,8 +270,8 @@ class TrainerGAN():
                 r_imgs_origin = Variable(imgs).to(self.device) 
                 f_imgs_origin = self.G(z) 
                 
-                r_imgs = r_imgs_origin + 0.1*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
-                f_imgs = f_imgs_origin + 0.1*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
+                r_imgs = r_imgs_origin #+ 0.1*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
+                f_imgs = f_imgs_origin #+ 0.1*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
 
                 r_label = torch.ones((bs)).to(self.device)
                 f_label = torch.zeros((bs)).to(self.device)
@@ -393,11 +393,11 @@ if __name__ == '__main__':
     parser.add_argument("--mode", help="train or test", default="train")   
     parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1B")
     parser.add_argument("--save_every", help="Save model every n epochs", type=int, default=5)
-    parser.add_argument("--batch_size", help="batch size", type=int, default=256)
-    parser.add_argument("--learning_rate", help="learning rate", type=float, default=1e-4)
+    parser.add_argument("--batch_size", help="batch size", type=int, default=32)
+    parser.add_argument("--learning_rate", help="learning rate", type=float, default=5e-4)
     parser.add_argument("--n_epoch", help="n_epoch", type=int, default=400)
     parser.add_argument("--n_critic", help="Update generater for every k steps in a epoch.", type=int, default=5)
-    parser.add_argument("--loss_criterion_D", help="Update generater when discriminator loss < c.", type=float, default=0.0001)
+    parser.add_argument("--loss_criterion_D", help="Update generater when discriminator loss < c.", type=float, default=0.0)
 
     parser.add_argument("--z_dim", help="Latent space dimension", type=int, default=100)
     args = parser.parse_args()
@@ -415,7 +415,7 @@ if __name__ == '__main__':
         device = torch.device("cpu")
     print("Using", device)
 
-
+    device = torch.device("cuda:0")
 
     config = {
         "output_dir": args.output_dir,
@@ -437,7 +437,8 @@ if __name__ == '__main__':
         trainer.train()
     if args.mode == "test":
         
-        model_path = os.path.join(args.ckpt_dir,f'G_{args.n_epoch-1}.pth' )
+        #model_path = os.path.join(args.ckpt_dir,f'G_{args.n_epoch-1}.pth' )
+        model_path = os.path.join(args.ckpt_dir,f'G_144.pth' )
         print(f"Loading from {model_path}")
         trainer.inference(model_path,show = True) # you have to modify the path when running this line
         print("Done.")

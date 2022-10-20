@@ -325,6 +325,7 @@ class DDPM(nn.Module):
 
         x_i_store = [] # keep track of generated steps in case want to plot something 
 
+        print(f"Sampling for {self.n_T} times.")
         for i in range(self.n_T, 0, -1):
             print(f'sampling timestep {i}',end='\r')
             t_is = torch.tensor([i / self.n_T]).to(device)
@@ -348,6 +349,7 @@ class DDPM(nn.Module):
             )
             if i%20==0 or i==self.n_T or i<8:
                 x_i_store.append(x_i.detach().cpu().numpy())
+
         
         x_i_store = np.array(x_i_store)
         return x_i, x_i_store
@@ -380,11 +382,12 @@ def train_mnist(config):
     #tf = transforms.Compose([transforms.ToTensor()])
     #dataset = MNIST("./data", train=True, download=True, transform=tf)
     
-    tf = transforms.Compose([ 
-        transforms.Normalize( #??
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225])
-    ]) 
+    # tf = transforms.Compose([ 
+    #     transforms.Normalize( #??
+    #         mean=[0.485, 0.456, 0.406],
+    #         std=[0.229, 0.224, 0.225])
+    # ]) 
+    tf = None
     train_dataset = MnistDataset(data_root_dir, os.path.join(data_root_dir, "train.csv"), transform=tf)
     dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=5)
     optim = torch.optim.Adam(ddpm.parameters(), lr=lrate)
@@ -416,7 +419,7 @@ def train_mnist(config):
         # followed by real images (bottom rows)
         ddpm.eval()
         with torch.no_grad():
-            n_sample = 4*n_classes
+            n_sample = 4*n_classes # Generate 4 images for each class 
             for w_i, w in enumerate(ws_test):
                 x_gen, x_gen_store = ddpm.sample(n_sample, (in_channels, 28, 28), device, guide_w=w)
 
@@ -451,13 +454,13 @@ def train_mnist(config):
                                 plots.append(axs[row, col].imshow(-x_gen_store[i,(row*n_classes)+col,0],cmap='gray',vmin=(-x_gen_store[i]).min(), vmax=(-x_gen_store[i]).max()))
                         return plots
                     # gif?
-                    # ani = FuncAnimation(fig, animate_diff, fargs=[x_gen_store],  interval=200, blit=False, repeat=True, frames=x_gen_store.shape[0])    
-                    # save_gif_as = os.path.join(save_dir, f"gif_ep{ep}_w{w}.gif")
-                    # ani.save(save_gif_as, dpi=100, writer=PillowWriter(fps=5))
-                    # print(f'saved image at {save_gif_as}')
+                    ani = FuncAnimation(fig, animate_diff, fargs=[x_gen_store],  interval=200, blit=False, repeat=True, frames=x_gen_store.shape[0])    
+                    save_gif_as = os.path.join(save_dir, f"gif_ep{ep}_w{w}.gif")
+                    ani.save(save_gif_as, dpi=100, writer=PillowWriter(fps=5))
+                    print(f'saved gif at {save_gif_as}')
 
         # optionally save model
-        if save_model and ep == int(n_epoch-1):
+        if save_model and ep%5==0:
             save_mobel_as = os.path.join(save_dir, f"model_{ep}.pth")
             torch.save(ddpm.state_dict(), save_mobel_as)
             print(f'saved model at {save_mobel_as}')
@@ -471,8 +474,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", help="batch size", type=int, default=256)
    
     parser.add_argument("--data_root_dir", help="Training data location", default="./hw2_data/digits/mnistm")
-    parser.add_argument("--n_T", help="n_T (生圖用)", type=int, default="2000")  
-    parser.add_argument("--n_feat", help="128 ok, 256 better (but slower)", type=int, default=128)
+    parser.add_argument("--n_T", help="n_T (生圖用)", type=int, default=400)  #400
+    parser.add_argument("--n_feat", help="128 ok, 256 better (but slower)", type=int, default=256)
     parser.add_argument("--lr", help="learning rate", type=float, default=1e-4) 
     parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-2")
     
@@ -504,7 +507,7 @@ if __name__ == "__main__":
         "n_feat": args.n_feat,
         "lr": args.lr,
         "ckpt_dir": args.ckpt_dir,
-        "ws_test": [0.0, 0.5, 2.0], # 三次gif
+        "ws_test": [0.0], # [0.0, 0.5, 2.0], # 三次gif
         
     }
     
