@@ -10,3 +10,4 @@ hw2_data/*
 *.pth
 ckpt*/
 log*/
+wandb*/

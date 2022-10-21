@@ -81,7 +81,7 @@ class Generator(nn.Module):
     Input shape: (batch, in_dim)
     Output shape: (batch, 3, 64, 64)
     """
-    def __init__(self, in_dim, feature_dim=64):
+    def __init__(self, in_dim, feature_dim=64, apply_weights_init=True):
         super().__init__()
     
         #input: (batch, 100)
@@ -100,7 +100,9 @@ class Generator(nn.Module):
                                padding=2, output_padding=1, bias=False),
             nn.Tanh()   
         )
-        self.apply(weights_init)
+        if apply_weights_init:
+            self.apply(weights_init)
+
     def dconv_bn_relu(self, in_dim, out_dim):
         return nn.Sequential(
             nn.ConvTranspose2d(in_dim, out_dim, kernel_size=5, stride=2,
@@ -121,7 +123,7 @@ class Discriminator(nn.Module):
     Input shape: (batch, 3, 64, 64)
     Output shape: (batch)
     """
-    def __init__(self, in_dim, feature_dim=64):
+    def __init__(self, in_dim, feature_dim=64, apply_weights_init=True):
         super(Discriminator, self).__init__()
             
         #input: (batch, 3, 64, 64)
@@ -138,7 +140,9 @@ class Discriminator(nn.Module):
             nn.Conv2d(feature_dim * 8, 1, kernel_size=4, stride=1, padding=0),
             # nn.Sigmoid() 
         )
-        self.apply(weights_init)
+        if apply_weights_init:
+            self.apply(weights_init)
+            
     def conv_bn_lrelu(self, in_dim, out_dim):
         """
         NOTE FOR SETTING DISCRIMINATOR:
@@ -161,7 +165,7 @@ class TrainerGAN():
     def __init__(self, config):
         self.config = config
         
-        self.G = Generator(100)
+        self.G = Generator(config["latent_dim"], feature_dim=64)
         self.D = Discriminator(3)
         
         self.loss = nn.BCELoss()
@@ -185,7 +189,7 @@ class TrainerGAN():
         
         self.steps = 0
         self.device = self.config["device"]
-        self.z_samples = Variable(torch.randn(64, self.config["z_dim"])).to(self.device)
+        self.z_samples = Variable(torch.randn(64, self.config["latent_dim"])).to(self.device)
 
     def print_model(self):
         print("Model B info:")
@@ -265,13 +269,13 @@ class TrainerGAN():
                 # *********************
                 # *    Train D        *
                 # *********************
-                z = Variable(torch.randn(bs, self.config["z_dim"])).to(self.device)
+                z = Variable(torch.randn(bs, self.config["latent_dim"])).to(self.device)
 
                 r_imgs_origin = Variable(imgs).to(self.device) 
                 f_imgs_origin = self.G(z) 
                 
-                r_imgs = r_imgs_origin #+ 0.1*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
-                f_imgs = f_imgs_origin #+ 0.1*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
+                r_imgs = r_imgs_origin + 0.1*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
+                f_imgs = f_imgs_origin + 0.1*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
 
                 r_label = torch.ones((bs)).to(self.device)
                 f_label = torch.zeros((bs)).to(self.device)
@@ -296,7 +300,8 @@ class TrainerGAN():
 
                 # Loss for discriminatolsr
                 gradient_penalty = self.gp(r_imgs, f_imgs)
-                loss_D = -torch.mean(r_logit) + torch.mean(f_logit) + gradient_penalty    
+                loss_critic = -torch.mean(r_logit) + torch.mean(f_logit)
+                loss_D = loss_critic + gradient_penalty    
 
                 # Discriminator backwarding
                 self.D.zero_grad()
@@ -309,10 +314,10 @@ class TrainerGAN():
                 #     torchvision.utils.save_image(r_imgs[0], os.path.join( self.config["ckpt_dir"],f'_real_img_{e}.jpg'))
                 #     torchvision.utils.save_image(f_imgs[0], os.path.join( self.config["ckpt_dir"],f'_fake_img_{e}.jpg'))
 
-                if self.steps % self.config["n_critic"] == 0 or loss_D < self.config["loss_criterion_D"]:
+                if self.steps % self.config["n_critic"] == 0 or loss_critic < self.config["loss_critic_criterion"]:
                     #print("update")
                     # Generate some fake images.
-                    z = Variable(torch.randn(bs, self.config["z_dim"])).to(self.device)
+                    z = Variable(torch.randn(bs, self.config["latent_dim"])).to(self.device)
                     f_imgs_origin = self.G(z)
                     f_imgs = f_imgs_origin 
 
@@ -336,7 +341,7 @@ class TrainerGAN():
                 #     print(f"G is not updated. loss_D = {loss_D}")
                 
                 if self.steps % 2 == 0:
-                    progress_bar.set_postfix(loss_G=loss_G.item(), loss_D=loss_D.item())
+                    progress_bar.set_postfix(loss_G=loss_G.item(), loss_critic=loss_critic.item(), loss_D=loss_D.item())
                 self.steps += 1
 
             self.G.eval()
@@ -367,7 +372,7 @@ class TrainerGAN():
         self.G.eval()
         
         # Generate 1000 imgs
-        z = Variable(torch.randn(n_generate, self.config["z_dim"])).to(self.device)
+        z = Variable(torch.randn(n_generate, self.config["latent_dim"])).to(self.device)
         imgs = (self.G(z).data + 1) / 2.0 #??
         
         # Save 1000 imgs
@@ -393,13 +398,13 @@ if __name__ == '__main__':
     parser.add_argument("--mode", help="train or test", default="train")   
     parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1B")
     parser.add_argument("--save_every", help="Save model every n epochs", type=int, default=5)
-    parser.add_argument("--batch_size", help="batch size", type=int, default=32)
-    parser.add_argument("--learning_rate", help="learning rate", type=float, default=5e-4)
-    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=400)
+    parser.add_argument("--batch_size", help="batch size", type=int, default=256)
+    parser.add_argument("--learning_rate", help="learning rate", type=float, default=1e-4)
+    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=200)
     parser.add_argument("--n_critic", help="Update generater for every k steps in a epoch.", type=int, default=5)
-    parser.add_argument("--loss_criterion_D", help="Update generater when discriminator loss < c.", type=float, default=0.0)
+    parser.add_argument("--loss_critic_criterion", help="Update generater when discriminator critic loss < c.", type=float, default=0)
 
-    parser.add_argument("--z_dim", help="Latent space dimension", type=int, default=100)
+    parser.add_argument("--latent_dim", help="Latent space dimension", type=int, default=128) #100
     args = parser.parse_args()
     print(vars(args))
     
@@ -410,12 +415,11 @@ if __name__ == '__main__':
         if torch.cuda.device_count()==2:
             device = torch.device("cuda:1")
         else:
-            device = torch.device("cuda:0")
+            device = torch.device("cuda")
     else:
         device = torch.device("cpu")
-    print("Using", device)
 
-    device = torch.device("cuda:0")
+    print("Using", device)
 
     config = {
         "output_dir": args.output_dir,
@@ -426,8 +430,8 @@ if __name__ == '__main__':
         "lr": args.learning_rate,
         "n_epoch": args.n_epoch,
         "n_critic": args.n_critic,
-        "loss_criterion_D": args.loss_criterion_D,
-        "z_dim": args.z_dim,
+        "loss_critic_criterion": args.loss_critic_criterion,
+        "latent_dim": args.latent_dim,
         "save_every": args.save_every,
         "device": device,
     }
@@ -438,7 +442,7 @@ if __name__ == '__main__':
     if args.mode == "test":
         
         #model_path = os.path.join(args.ckpt_dir,f'G_{args.n_epoch-1}.pth' )
-        model_path = os.path.join(args.ckpt_dir,f'G_144.pth' )
+        model_path = os.path.join(args.ckpt_dir,f'G_39.pth' )
         print(f"Loading from {model_path}")
         trainer.inference(model_path,show = True) # you have to modify the path when running this line
         print("Done.")
