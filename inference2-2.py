@@ -389,7 +389,7 @@ def eval_mnist(config):
             for w in ws_test:
                 x_gen, x_gen_store = ddpm.sample(n_sample, (in_channels, 28, 28), device, guide_w=w)
             for idx_inner, img in enumerate(x_gen):
-                save_eval_img_as = os.path.join(output_dir, "{:d}_{:03d}.png".format(idx_inner%20,idx_outer*10+idx_inner//10+1))
+                save_eval_img_as = os.path.join(output_dir, "{:d}_{:03d}.png".format(idx_inner%10,idx_outer*20+idx_inner//10+1))
                 
                 save_image(img, save_eval_img_as)
                 print(f'saved image at {save_eval_img_as}')
