@@ -384,12 +384,12 @@ def eval_mnist(config):
     ddpm.eval()
 
     with torch.no_grad():
-        for idx_outer in range(5): # Repeat 5 times
-            n_sample = 20*n_classes # Generate 20 images for each class 
+        for idx_outer in range(10): # Repeat 10 times
+            n_sample = 10*n_classes # Generate 10 images for each class 
             for w in ws_test:
                 x_gen, x_gen_store = ddpm.sample(n_sample, (in_channels, 28, 28), device, guide_w=w)
             for idx_inner, img in enumerate(x_gen):
-                save_eval_img_as = os.path.join(output_dir, "{:d}_{:03d}.png".format(idx_inner%10,idx_outer*20+idx_inner//10+1))
+                save_eval_img_as = os.path.join(output_dir, "{:d}_{:03d}.png".format(idx_inner%10,idx_outer*10+idx_inner//10+1))
                 
                 save_image(img, save_eval_img_as)
                 print(f'saved image at {save_eval_img_as}')

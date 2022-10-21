@@ -26,6 +26,7 @@ class DATA(Dataset):
 		for filename in os.listdir(self.img_dir):
 			self.data.append(os.path.join(self.img_dir, filename))
 			self.labels.append(int(filename[0]))
+		print("Total image",len(self.data))
 
 		self.transform = transforms.Compose([
 							transforms.ToTensor(), # (H,W,C)->(C,H,W), [0,255]->[0, 1.0] RGB->RGB
