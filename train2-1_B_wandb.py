@@ -309,7 +309,7 @@ class TrainerGAN():
                 # Loss for discriminatolsr
                 gradient_penalty = self.gp(r_imgs, f_imgs)
                 loss_critic = -torch.mean(r_logit) + torch.mean(f_logit)
-                loss_D = loss_critic + gradient_penalty    
+                loss_D = loss_critic + 0.1*gradient_penalty    
 
                 # Discriminator backwarding
                 self.D.zero_grad()
@@ -411,16 +411,16 @@ if __name__ == '__main__':
     parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1B")
     parser.add_argument("--save_every", help="Save model every n epochs", type=int, default=5)
     parser.add_argument("--batch_size", help="batch size", type=int, default=128)
-    parser.add_argument("--learning_rate", help="learning rate", type=float, default=2e-4)
+    parser.add_argument("--learning_rate", help="learning rate", type=float, default=1e-4)
     parser.add_argument("--n_epoch", help="n_epoch", type=int, default=200)
-    parser.add_argument("--n_critic", help="Update generater for every k steps in a epoch.", type=int, default=2)
+    parser.add_argument("--n_critic", help="Update generater for every k steps in a epoch.", type=int, default=1)
     #parser.add_argument("--loss_critic_criterion", help="Update generater when discriminator critic loss < c.", type=float, default=0)
 
     parser.add_argument("--latent_dim", help="Latent space dimension", type=int, default=100) #100
     args = parser.parse_args()
     print(vars(args))
     
-    same_seeds(2022)
+    same_seeds(1211)
 
 
     if torch.cuda.is_available():
@@ -457,7 +457,7 @@ if __name__ == '__main__':
     if args.mode == "test":
         
         #model_path = os.path.join(args.ckpt_dir,f'G_{args.n_epoch-1}.pth' )
-        model_path = os.path.join(args.ckpt_dir,f'G_199.pth' )
+        model_path = os.path.join(args.ckpt_dir,f'G_189.pth' )
         print(f"Loading from {model_path}")
         trainer.inference(model_path,show = True) # you have to modify the path when running this line
         print("Done.")

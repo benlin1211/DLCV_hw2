@@ -322,7 +322,7 @@ if __name__ == '__main__':
     parser.add_argument("--save_every", help="Save model every k epochs", type=int, default=5)
     parser.add_argument("--batch_size", help="batch size", type=int, default=128)
     parser.add_argument("--learning_rate", help="learning rate", type=float, default=1e-4)
-    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=80)
+    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=200)
     parser.add_argument("--n_critic", help="Update generater for every n epochs.", type=int, default=2)
 
     parser.add_argument("--z_dim", help="Latent space dimension", type=int, default=100)
@@ -364,4 +364,5 @@ if __name__ == '__main__':
     if args.mode == "train":
         trainer.train()
     if args.mode == "test":
-        trainer.inference(f'{args.ckpt_dir}/G_{args.n_epoch-1}.pth',show = True) # you have to modify the path when running this line
+        trainer.inference(f'{args.ckpt_dir}/G_79.pth',show = True) # you have to modify the path when running this line
+        print("Done.")
