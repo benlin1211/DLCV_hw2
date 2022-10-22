@@ -86,10 +86,21 @@ class Generator(nn.Module):
         super().__init__()
     
         #input: (batch, 100)
+        # self.l1 = nn.Sequential(
+        #     nn.Linear(in_dim, feature_dim * 8 * 4 * 4, bias=False),
+        #     nn.BatchNorm1d(feature_dim * 8 * 4 * 4),
+        #     nn.ReLU()
+        # )
         self.l1 = nn.Sequential(
-            nn.Linear(in_dim, feature_dim * 8 * 4 * 4, bias=False),
+            nn.Linear(in_dim, feature_dim * 4, bias=False),
+            nn.BatchNorm1d(feature_dim * 4),
+            nn.LeakyReLU(0.2),
+            nn.Linear(feature_dim * 4, feature_dim * 4 * 4, bias=False),
+            nn.BatchNorm1d(feature_dim * 4 * 4),
+            nn.LeakyReLU(0.2),
+            nn.Linear(feature_dim * 4 * 4, feature_dim * 8 * 4 * 4, bias=False),
             nn.BatchNorm1d(feature_dim * 8 * 4 * 4),
-            nn.ReLU()
+            nn.LeakyReLU(0.2),
         )
         self.l2 = nn.Sequential(
             self.dconv_bn_relu(feature_dim * 8, feature_dim * 4),               #(batch, feature_dim * 16, 8, 8)     
@@ -109,7 +120,7 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(in_dim, out_dim, kernel_size=5, stride=2,
                                padding=2, output_padding=1, bias=False),        #double height and width
             nn.BatchNorm2d(out_dim),
-            nn.ReLU(True)
+            nn.LeakyReLU(0.2),
         )
     def forward(self, x):
         y = self.l1(x)
@@ -192,10 +203,16 @@ class TrainerGAN():
         self.device = self.config["device"]
         self.z_samples = Variable(torch.randn(64, self.config["latent_dim"])).to(self.device)
 
+    def count_parameters(self):
+        print(f"Generator size: {sum(p.numel() for p in self.G.parameters() if p.requires_grad)}")
+        print(f"Discriminator size: {sum(p.numel() for p in self.D.parameters() if p.requires_grad)}")
+        
+
     def print_model(self):
         print("Model B info:")
         print(self.G)
         print(self.D)
+
         
     def prepare_environment(self):
         """
@@ -274,17 +291,10 @@ class TrainerGAN():
 
                 r_imgs_origin = Variable(imgs).to(self.device) 
                 f_imgs_origin = self.G(z) 
-                
-                if epoch < 40:
-                    r_imgs = r_imgs_origin + 0.25*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
-                    f_imgs = f_imgs_origin + 0.25*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
-                elif epoch < 80:
-                    r_imgs = r_imgs_origin + 0.1*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
-                    f_imgs = f_imgs_origin + 0.1*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
-                else:
-                    r_imgs = r_imgs_origin
-                    f_imgs = f_imgs_origin 
 
+                r_imgs = r_imgs_origin + (epoch/self.config["n_epoch"])*0.5*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
+                f_imgs = f_imgs_origin + (epoch/self.config["n_epoch"])*0.5*Variable(torch.randn(bs, 3, 64, 64)).to(self.device)
+                 
                 r_label = torch.ones((bs)).to(self.device)
                 f_label = torch.zeros((bs)).to(self.device)
 
@@ -309,7 +319,7 @@ class TrainerGAN():
                 # Loss for discriminatolsr
                 gradient_penalty = self.gp(r_imgs, f_imgs)
                 loss_critic = -torch.mean(r_logit) + torch.mean(f_logit)
-                loss_D = loss_critic + 0.1*gradient_penalty    
+                loss_D = loss_critic + self.config["lambda_gp"]*gradient_penalty    
 
                 # Discriminator backwarding
                 self.D.zero_grad()
@@ -322,7 +332,8 @@ class TrainerGAN():
                 #     torchvision.utils.save_image(r_imgs[0], os.path.join( self.config["ckpt_dir"],f'_real_img_{e}.jpg'))
                 #     torchvision.utils.save_image(f_imgs[0], os.path.join( self.config["ckpt_dir"],f'_fake_img_{e}.jpg'))
 
-                if self.steps % self.config["n_critic"] == 0 : #or loss_critic < self.config["loss_critic_criterion"]:
+                if self.steps % self.config["n_critic"] == 0 or loss_D < self.config["loss_D_criterion"]:
+                    self.D.eval()
                     #print("update")
                     # Generate some fake images.
                     z = Variable(torch.randn(bs, self.config["latent_dim"])).to(self.device)
@@ -345,6 +356,7 @@ class TrainerGAN():
                     self.G.zero_grad()
                     loss_G.backward()
                     self.opt_G.step()
+                    self.D.train()
                 # else:
                 #     print(f"G is not updated. loss_D = {loss_D}")
                 
@@ -410,11 +422,12 @@ if __name__ == '__main__':
     parser.add_argument("--mode", help="train or test", default="train")   
     parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1B")
     parser.add_argument("--save_every", help="Save model every n epochs", type=int, default=5)
-    parser.add_argument("--batch_size", help="batch size", type=int, default=128)
-    parser.add_argument("--learning_rate", help="learning rate", type=float, default=1e-4)
-    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=200)
-    parser.add_argument("--n_critic", help="Update generater for every k steps in a epoch.", type=int, default=1)
-    #parser.add_argument("--loss_critic_criterion", help="Update generater when discriminator critic loss < c.", type=float, default=0)
+    parser.add_argument("--batch_size", help="batch size", type=int, default=256)
+    parser.add_argument("--learning_rate", help="learning rate", type=float, default=2e-4)
+    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=100)
+    parser.add_argument("--n_critic", help="Update generater for every k steps in a epoch.", type=int, default=5)
+    parser.add_argument("--loss_D_criterion", help="Update generater when discriminator loss < c.", type=float, default=0)
+    parser.add_argument("--lambda_gp", help="Coeffcient of gradient penalty", type=float, default=10)
 
     parser.add_argument("--latent_dim", help="Latent space dimension", type=int, default=100) #100
     args = parser.parse_args()
@@ -444,13 +457,15 @@ if __name__ == '__main__':
         "lr": args.learning_rate,
         "n_epoch": args.n_epoch,
         "n_critic": args.n_critic,
-        #"loss_critic_criterion": args.loss_critic_criterion,
+        "loss_D_criterion": args.loss_D_criterion,
+        "lambda_gp": args.lambda_gp,
         "latent_dim": args.latent_dim,
         "save_every": args.save_every,
         "device": device,
     }
     trainer = TrainerGAN(config)
     trainer.print_model()
+    trainer.count_parameters()
     if args.mode == "train":
         wandb.init(entity="benlin1211", project="DLCV hw2-1")
         trainer.train()
