@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+from sklearn.manifold import TSNE
 
 # seed setting
 def same_seeds(seed):
@@ -121,54 +122,60 @@ class CNNModel(nn.Module):
 
     def forward(self, input_data, alpha):
         input_data = input_data.expand(input_data.data.shape[0], 3, 28, 28)
-        feature = self.feature(input_data)
-        feature = feature.view(-1, 50 * 4 * 4)
+        feature_raw = self.feature(input_data)
+        feature = feature_raw.view(-1, 50 * 4 * 4)
         reverse_feature = ReverseLayerF.apply(feature, alpha)
         class_output = self.class_classifier(feature)
         domain_output = self.domain_classifier(reverse_feature)
 
-        return class_output, domain_output
+        return class_output, domain_output, feature
 
 
 def test(dataloader, my_net):
     len_dataloader = len(dataloader)
     data_target_iter = iter(dataloader)
     i = 0
-    n_total = 0
-    n_correct = 0
+    alpha = 1
+    result_class = []
+    result_domain = []
+    feature_list = []
     while i < len_dataloader:
 
         # test model using target data
         data_target = data_target_iter.next()
-        t_img, t_label = data_target
-
-        batch_size = len(t_label)
+        t_img, img_name = data_target
+        #print(t_img.shape)
 
         t_img = t_img.to(device)
-        t_label = t_label.to(device)
 
-        class_output, _ = my_net(input_data=t_img, alpha=alpha)
+        class_output, domain_output, feature = my_net(input_data=t_img, alpha=alpha)
         pred = class_output.data.max(1, keepdim=True)[1]
-        n_correct += pred.eq(t_label.data.view_as(pred)).cpu().sum()
-        n_total += batch_size
+        for p in pred:
+            result_class.append(p.cpu().numpy()[0])
 
+        pred = domain_output.data.max(1, keepdim=True)[1]
+        for p in pred:
+            result_domain.append(p.cpu().numpy()[0]) 
+
+        for f in feature:
+            feature_list.append(f.detach().cpu().numpy())
         i += 1
-    accu = n_correct.data.numpy() * 1.0 / n_total
-    return accu
+        print(i, end = '\r')
+
+    return result_class, result_domain, feature_list
 
 
 if __name__ == '__main__':
     
-    parser = argparse.ArgumentParser(description="hw 2-1 train",
+    parser = argparse.ArgumentParser(description="hw 2-3 train",
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("output_dir", help="Output data location")
 
     parser.add_argument("--data_dir", help="Training data location", default="./hw2_data/digits")
-    parser.add_argument("--mode", help="train or test", default="train")   
-    parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-3")
+    parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-3_usps")
     parser.add_argument("--batch_size", help="batch size", type=int, default=128)
-    parser.add_argument("--learning_rate", help="learning rate", type=float, default=3e-4)
-    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=150)
+    parser.add_argument("--learning_rate", help="learning rate", type=float, default=2e-4)
+    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=1000)
     args = parser.parse_args()
     print(vars(args))
     
@@ -183,62 +190,37 @@ if __name__ == '__main__':
         device = torch.device("cpu")
 
     print("Using", device)
-
     output_dir = args.output_dir
     data_dir = args.data_dir
     ckpt_dir = args.ckpt_dir
+    os.makedirs(ckpt_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     batch_size = args.batch_size
-    lr = args.learning_rate
+    # lr = args.learning_rate
     n_epoch = args.n_epoch
     image_size = 28
 
     source_dataset_name = 'mnistm'
-    target_dataset_name = 'usps' 
+    #target_dataset_name = 'usps' 
+    target_dataset_name = 'svhn' 
+
     source_image_root = os.path.join(args.data_dir, source_dataset_name)
     target_image_root = os.path.join(args.data_dir, target_dataset_name)
     # print(source_image_root)
     # print(target_image_root)
-
+    
     img_transform_source = transforms.Compose([
         transforms.Resize(image_size),
         transforms.ToTensor(),
-        transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))  
+        transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))  # mnistm is RGB
     ])
     img_transform_target = transforms.Compose([
         transforms.Resize(image_size),
         transforms.ToTensor(),
-        transforms.Normalize(mean=(0.1307,), std=(0.3081,))
+        transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))  # svhn is RGB
     ])
 
-    # Train dataset
-    train_dataset_source = Digits(  
-        data_root=os.path.join(source_image_root, 'data'),
-        csv_name=os.path.join(source_image_root, 'train.csv'),
-        domain = "source",
-        mode = "train",
-        transform=img_transform_source
-    )
-    train_dataset_target = Digits(  
-        data_root=os.path.join(target_image_root, 'data'),
-        csv_name=os.path.join(target_image_root, 'train.csv'),
-        domain = "target",
-        mode = "train",
-        transform=img_transform_target
-    )
-    # Train dataloader
-    train_dataloader_source = DataLoader(
-        dataset=train_dataset_source,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=8
-    )
-    train_dataloader_target = DataLoader(
-        dataset=train_dataset_target,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=8
-    )
     # Test loader
     val_dataset_source = Digits(  
         data_root=os.path.join(source_image_root, 'data'),
@@ -267,103 +249,44 @@ if __name__ == '__main__':
         shuffle=False,
         num_workers=8
     )   
-    
-
 
     # load model
     my_net = CNNModel()
-    loss_class = torch.nn.NLLLoss()
-    loss_domain = torch.nn.NLLLoss()
-    
+    ckpt_name = os.path.join(ckpt_dir, "best_model_329.pth")
+    my_net.load_state_dict(torch.load(ckpt_name))
     my_net = my_net.to(device)
-    loss_class = loss_class.to(device)
-    loss_domain = loss_domain.to(device)
+    my_net.eval()
 
-    for p in my_net.parameters():
-        p.requires_grad = True
+    # testing
+    print("Evaluation")
+    my_net = my_net.eval()
 
-    optimizer = optim.Adam(my_net.parameters(), lr=lr)
-
-
-
-
-    # training
-    best_accu_t = 0.0
-    for epoch in range(n_epoch):
-
-        len_dataloader = min(len(train_dataloader_source), len(train_dataloader_target))
-        data_source_iter = iter(train_dataloader_source)
-        data_target_iter = iter(train_dataloader_target)
-
-        pbar = tqdm(range(len_dataloader))
-        pbar.set_description(f"Epoch {epoch+1}")
-        for i in pbar:
-
-            p = float(i + epoch * len_dataloader) / n_epoch / len_dataloader
-            alpha = 2. / (1. + np.exp(-10 * p)) - 1
-
-            # training model using source data
-            data_source = data_source_iter.next()
-            s_img, s_label = data_source
-
-            my_net.zero_grad()
-            batch_size = len(s_label)
-
-            domain_label = torch.zeros(batch_size).long()
-
-            s_img = s_img.to(device)
-            s_label = s_label.to(device)
-            domain_label = domain_label.to(device)
+    # Target domain
+    result_class_target, result_domain_target, feature_target = test(val_dataloader_target, my_net)
+    print(len(feature_target))
 
 
-            class_output, domain_output = my_net(input_data=s_img, alpha=alpha)
-            err_s_label = loss_class(class_output, s_label)
-            err_s_domain = loss_domain(domain_output, domain_label)
+    # Source domain
+    result_class_source, result_domain_source, feature_source = test(val_dataloader_source, my_net)
+    print(len(feature_source))
+    print(len(feature_target + feature_source))
+    feature_target = np.array(feature_target + feature_source)
 
-            # training model using target data
-            data_target = data_target_iter.next()
-            t_img, _ = data_target
+    f_embedded = TSNE(n_components=2, learning_rate='auto',
+                     init='random', perplexity=3).fit_transform(feature_target)
+    print(f_embedded.shape)
 
-            batch_size = len(t_img)
+    result_class = result_class_target + result_class_source
+    plt.scatter(f_embedded[:, 0], f_embedded[:, 1], s=1, c=result_class, cmap='Spectral')
+    plt.gca().set_aspect('equal', 'datalim')
+    cb1 = plt.colorbar(boundaries=np.arange(11)-0.5).set_ticks(np.arange(10))
+    plt.title('(a) svhn by class', fontsize=24)
+    save_img_as = os.path.join(output_dir, f"Report 2-3 svhn tsne by class.png")
+    plt.savefig(save_img_as)
 
-            domain_label = torch.ones(batch_size).long()
-
-            t_img = t_img.to(device)
-            domain_label = domain_label.to(device)
-
-            _, domain_output = my_net(input_data=t_img, alpha=alpha)
-            err_t_domain = loss_domain(domain_output, domain_label)
-            err = err_t_domain + err_s_domain + err_s_label
-            err.backward()
-            optimizer.step()
-
-            pbar.set_postfix(
-                err_s_label = err_s_label.data.cpu().numpy(), 
-                err_s_domain = err_s_domain.data.cpu().numpy(),
-                err_t_domain = err_t_domain.data.cpu().item(),
-            )
-        
-        torch.save(my_net.state_dict(), os.path.join(ckpt_dir, f'model_{epoch}.pth'))
-        print("Evaluation")
-        my_net = my_net.eval()
-
-        # Target domain
-        accu_t = test(val_dataloader_target, my_net)
-        print(f'Accuracy of the {target_dataset_name} dataset: {accu_t}')
-
-        # Source domain
-        accu_s = test(val_dataloader_source, my_net)
-        print(f'Accuracy of the {source_dataset_name} dataset: {accu_s}')
-
-        if accu_t > best_accu_t:
-            best_accu_s = accu_s
-            best_accu_t = accu_t
-            torch.save(my_net.state_dict(), os.path.join(ckpt_dir, f'best_model_{epoch}.pth'))
-            best_epoch = epoch
-        
-
-
-    print('============ Summary ============= \n')
-    print('Accuracy of the %s dataset: %f' % ('mnist', best_accu_s))
-    print('Accuracy of the %s dataset: %f' % ('mnist_m', best_accu_t))
-    print(f'Best epoch: {best_epoch}')
+    result_domain = result_domain_target + result_domain_source
+    plt.scatter(f_embedded[:, 0], f_embedded[:, 1], s=1, c=result_domain, cmap='Spectral')
+    plt.colorbar(boundaries=np.arange(3)-0.5).set_ticks(np.arange(2))
+    cb2 = plt.title('(b) svhn by domain', fontsize=24)
+    save_img_as = os.path.join(output_dir, f"Report 2-3 svhn tsne by domain.png")
+    plt.savefig(save_img_as)

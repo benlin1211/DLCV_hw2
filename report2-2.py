@@ -344,14 +344,15 @@ class DDPM(nn.Module):
             eps = (1+guide_w)*eps1 - guide_w*eps2
             x_i = x_i[:n_sample]
             x_i = (
-                self.oneover_sqrta[i] * (x_i - eps * self.mab_over_sqrtmab[i])
-                + self.sqrt_beta_t[i] * z
+                self.oneover_sqrta[i] * (x_i - eps * self.mab_over_sqrtmab[i]) + self.sqrt_beta_t[i] * z
             )
-            if i%20==0 or i==self.n_T or i<8:
+            if i%40==0 or i==self.n_T-1:
+                print(f"t={i}")
                 x_i_store.append(x_i.detach().cpu().numpy())
 
         
-        x_i_store = np.array(x_i_store)
+        #x_i_store = np.array(x_i_store)
+        x_i_store = torch.tensor(x_i_store)
         return x_i, x_i_store
 
 
@@ -384,6 +385,22 @@ def eval_mnist(config):
     ddpm.eval()
 
     with torch.no_grad():
+
+        n_sample = 10*n_classes  # Generate 1 images for each class 
+        for w_i, w in enumerate(ws_test):        
+            x_gen, x_gen_store = ddpm.sample(n_classes, (in_channels, 28, 28), device, guide_w=w)
+            for i, imgs in enumerate(x_gen_store):
+                img_0 = imgs[0]
+                # grid = make_grid(img_0*-1 + 1, nrow=10)
+                save_img_0_as = os.path.join(output_dir, f"Report 2-2-3_{i*40}.png")
+                save_image(img_0, save_img_0_as)
+                print(f'saved image at {save_img_0_as}')
+
+            save_img_x_gen_as = os.path.join(output_dir, f"Report 2-2-3_x_gen.png")
+            save_image(x_gen[0], save_img_x_gen_as)
+            print(f'saved image at {save_img_x_gen_as}')
+            
+
         n_sample = 10*n_classes # Generate 10 images for each class 
         for w_i, w in enumerate(ws_test):
             x_gen, x_gen_store = ddpm.sample(n_sample, (in_channels, 28, 28), device, guide_w=w)
@@ -392,6 +409,7 @@ def eval_mnist(config):
             save_eval_img_as = os.path.join(output_dir, f"Report 2-2-2.png")
             save_image(grid, save_eval_img_as)
             print(f'saved image at {save_eval_img_as}')
+
 
 
 

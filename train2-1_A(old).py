@@ -298,7 +298,7 @@ if __name__ == '__main__':
     parser.add_argument("--data_dir", help="Training data location", default="./hw2_data/face/train")
     parser.add_argument("--mode", help="train or test", default="train")   
     parser.add_argument("--log_dir", help="Log location", default="log2-1")
-    parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1")
+    parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1A")
     parser.add_argument("--save_every", help="Save model every k epochs", type=int, default=5)
     parser.add_argument("--batch_size", help="batch size", type=int, default=128)
     parser.add_argument("--learning_rate", help="learning rate", type=float, default=1e-4)

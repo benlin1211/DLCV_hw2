@@ -54,10 +54,10 @@ def get_dataset(directory):
     fnames = glob.glob(os.path.join(directory, '*.png'))
     compose = [
         transforms.ToPILImage(),
-        transforms.CenterCrop(64),
         transforms.Resize(64),
-        # transforms.RandomHorizontalFlip(p=0.5),
-        # transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.ColorJitter(brightness=0.05, contrast=0.05, saturation=0.05, hue=0),
+        transforms.CenterCrop(64),
         transforms.ToTensor(),
         transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)),
     ]
@@ -144,12 +144,12 @@ if __name__ == '__main__':
     parser.add_argument("--data_dir", help="Training data location", default="./hw2_data/face/train")
     parser.add_argument("--mode", help="train or test", default="train")   
     parser.add_argument("--pth_name")  
-    parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1A")
+    parser.add_argument("--ckpt_dir", help="Checkpoint location", default="ckpt2-1A_128")
     parser.add_argument("--save_every", help="Save model every k epochs", type=int, default=1)
     parser.add_argument("--batch_size", help="batch size", type=int, default=64)
     parser.add_argument("--learning_rate_D", help="learning rate", type=float, default=2e-4)
     parser.add_argument("--learning_rate_G", help="learning rate", type=float, default=2e-4)
-    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=300)
+    parser.add_argument("--n_epoch", help="n_epoch", type=int, default=120)
     parser.add_argument("--n_critic", help="Update discriminator for every n epochs.", type=int, default=1)
 
     parser.add_argument("--z_dim", help="Latent space dimension", type=int, default=100)
@@ -170,7 +170,7 @@ if __name__ == '__main__':
     print("Using", device)
 
     # Root directory for dataset
-    same_seeds(123)
+    same_seeds(999)
     output_dir = args.output_dir
     ckpt_dir = args.ckpt_dir
     data_dir = args.data_dir
@@ -187,10 +187,10 @@ if __name__ == '__main__':
 
     # Size of feature maps in generator
     #ngf = 64
-    ngf = 64
+    ngf = 128
     # Size of feature maps in discriminator
     # ndf = 64
-    ndf = 64
+    ndf = 128
     image_size = 64
     nc = 3
 
@@ -198,7 +198,7 @@ if __name__ == '__main__':
     if args.mode=="test":
         os.makedirs(output_dir, exist_ok=True)
         n_generate = 1000
-        netG = Generator(nz, ngf, nc) 
+        netG = Generator(nz, ngf, nc)
         ckpt_path = os.path.join(ckpt_dir, args.pth_name)
         print(f"Load model from: {ckpt_path}")
         netG.load_state_dict(torch.load(ckpt_path))
@@ -211,8 +211,8 @@ if __name__ == '__main__':
         imgs = (imgs + 1) / 2.0
 
         for i in range(n_generate):
-            torchvision.utils.save_image(imgs[i], os.path.join(output_dir,'{0:03d}.png'.format(i)), normalize=True)
-       
+            torchvision.utils.save_image(imgs[i], os.path.join(output_dir,f'{i+1}.jpg'))
+        
         print("Done.")
         
     
@@ -226,19 +226,19 @@ if __name__ == '__main__':
         # Create the Generator
         netG = Generator(nz, ngf, nc).to(device)
         netG.apply(weights_init)
-        #print(netG)
+        print(netG)
 
         # Create the Discriminator
         netD = Discriminator(nc, ndf).to(device)
         netD.apply(weights_init)
-        #print(netD)
+        print(netD)
 
-        # resume_path = os.path.join("ckpt2-1_pei", "G_0.pth")
+        # resume_path = os.path.join("ckpt2-1A", "G_399.pth")
         # print(f"Load model from: {resume_path}")
         # netG.load_state_dict(torch.load(resume_path))
-        # resume_path = os.path.join("ckpt2-1_pei", "D_0.pth")
+        # resume_path = os.path.join("ckpt2-1A", "D_399.pth")
         # print(f"Load model from: {resume_path}")
-        # netD.load_state_dict(torch.load(resume_path))        
+        # netD.load_state_dict(torch.load(resume_path))
 
         # Initialize BCELoss function
         criterion = nn.BCELoss()
@@ -248,10 +248,8 @@ if __name__ == '__main__':
         fixed_noise = torch.randn(64, nz, 1, 1, device=device)
 
         # Establish convention for real and fake labels during training
-        # real_label = 1.
-        # fake_label = 0.
-        real_label = 0.9
-        fake_label = 0.1
+        real_label = 1.
+        fake_label = 0.
 
         # Setup Adam optimizers for both G and D
         optimizerD = optim.AdamW(netD.parameters(), lr=lr_D, betas=(beta1, 0.999))
@@ -265,7 +263,7 @@ if __name__ == '__main__':
         iters = 0
 
         print("Starting Training Loop...")
-        
+        wandb.init(entity="benlin1211", project="DLCV hw2-1")
         # For each epoch
         for epoch in range(num_epochs):
             # For each batch in the dataloader
@@ -281,22 +279,28 @@ if __name__ == '__main__':
             #     ratio = 0.05
             # else:
             #     ratio = 0
-            #ratio = 1
-            ratio = 0.01
+            ratio = 0.02
             #print("ratio",ratio)
             for i, data in enumerate(dataloader, 0):
                 ############################
                 # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
                 ###########################
 
+
+                
                 ## Train with all-real batch
                 netD.zero_grad()
                 # Format batch
-                real_cpu = data.to(device)
+                real_cpu = data
                 b_size = real_cpu.size(0)
                 label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
+
+                real_cpu = real_cpu.to(device)
+                # if i>100 and i<200:
+                #     filename = os.path.join(ckpt_dir, f'Epoch_{epoch:03d}_{i}.jpg')
+                #     torchvision.utils.save_image(real_cpu[0], filename, nrow=8)
                 # Forward pass real batch through D
-                output = netD(real_cpu + ratio*torch.normal(0, 1, (b_size, 3, image_size, image_size)).to(device)).view(-1)
+                output = netD(real_cpu + ratio*torch.randn(b_size, 3, image_size, image_size).to(device)).view(-1) 
                 # Calculate loss on all-real batch
                 errD_real = criterion(output, label)
                 # Calculate gradients for D in backward pass
@@ -310,7 +314,7 @@ if __name__ == '__main__':
                 fake = netG(noise)
                 label.fill_(fake_label)
                 # Classify all fake batch with D
-                output = netD(fake.detach() + ratio*torch.normal(0, 1, (b_size, 3, image_size, image_size)).to(device)).view(-1)
+                output = netD(fake.detach() + ratio*torch.randn(b_size, 3, image_size, image_size).to(device)).view(-1)
                 # Calculate D's loss on the all-fake batch
                 errD_fake = criterion(output, label)
                 # Calculate the gradients for this batch, accumulated (summed) with previous gradients
@@ -338,12 +342,18 @@ if __name__ == '__main__':
                     # Update G
                     optimizerG.step()
 
-
                 # Output training stats
                 if i % 50 == 0:
                     print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f\tD(x): %.4f\tD(G(z)): %.4f / %.4f'
                         % (epoch, num_epochs, i, len(dataloader),
                             errD.item(), errG.item(), D_x, D_G_z1, D_G_z2))
+                    wandb.log({
+                        "loss_G": errG.item(),
+                        "loss_D": errD.item(),
+                        "D_x": D_x, 
+                        "D_G_z1": D_G_z1,
+                        "D_G_z2":D_G_z2
+                    })
 
                 # Save Losses for plotting later
                 G_losses.append(errG.item())
@@ -355,9 +365,13 @@ if __name__ == '__main__':
                         fake = netG(fixed_noise).detach().cpu()
                         fake = (fake+1)/2
                         
-                    filename = os.path.join(ckpt_dir, f'Epoch_{epoch:03d}.png')
-                    torchvision.utils.save_image(fake, filename, nrow=8,  normalize=True)
-
+                    filename = os.path.join(ckpt_dir, f'Epoch_{epoch:03d}.jpg')
+                    torchvision.utils.save_image(fake, filename, nrow=8)
+                    def wandb_record_img(image_array, caption):
+                        image = wandb.Image(image_array, caption=caption)
+                        wandb.log({caption: image})
+                    
+                    wandb_record_img(fake, "f_imgs")
 
                 iters += 1
                     
