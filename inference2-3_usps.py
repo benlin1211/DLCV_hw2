@@ -176,14 +176,14 @@ if __name__ == '__main__':
     
     same_seeds(1211)
 
-    if torch.cuda.is_available():
-        if torch.cuda.device_count()==2:
-            device = torch.device("cuda:1")
-        else:
-            device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
-
+    # if torch.cuda.is_available():
+    #     if torch.cuda.device_count()==2:
+    #         device = torch.device("cuda:1")
+    #     else:
+    #         device = torch.device("cuda")
+    # else:
+    #     device = torch.device("cpu")
+    device = torch.device("cuda")
     print("Using", device)
 
     output_dir = args.output_dir

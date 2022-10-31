@@ -377,6 +377,7 @@ def eval_mnist(config):
 
     ddpm = DDPM(nn_model=ContextUnet(in_channels=in_channels, n_feat=n_feat, n_classes=n_classes), betas=(1e-4, 0.02), n_T=n_T, device=device, drop_prob=0.1)
     ddpm.to(device)
+    print(ddpm)
 
     ckpt_path = os.path.join(config["ckpt_dir"], "model_350.pth")
     print(f"Load model from: {ckpt_path}")
@@ -416,13 +417,14 @@ if __name__ == "__main__":
     
     same_seeds(2022)
 
-    if torch.cuda.is_available():
-        if torch.cuda.device_count()==2:
-            device = torch.device("cuda:1")
-        else:
-            device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
+    # if torch.cuda.is_available():
+    #     if torch.cuda.device_count()==2:
+    #         device = torch.device("cuda:1")
+    #     else:
+    #         device = torch.device("cuda")
+    # else:
+    #     device = torch.device("cpu")
+    device = torch.device("cuda")
     print("Using", device)
 
     config = {

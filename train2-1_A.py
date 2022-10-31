@@ -160,13 +160,15 @@ if __name__ == '__main__':
     same_seeds(1)
 
 
-    if torch.cuda.is_available():
-        if torch.cuda.device_count()==2:
-            device = torch.device("cuda:1")
-        else:
-            device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
+    # if torch.cuda.is_available():
+    #     if torch.cuda.device_count()==2:
+    #         device = torch.device("cuda:1")
+    #     else:
+    #         device = torch.device("cuda")
+    # else:
+    #     device = torch.device("cpu")
+    # print("Using", device)
+    device = torch.device("cuda")
     print("Using", device)
 
     # Root directory for dataset
@@ -198,6 +200,7 @@ if __name__ == '__main__':
     if args.mode=="test":
         os.makedirs(output_dir, exist_ok=True)
         n_generate = 1000
+        
         netG = Generator(nz, ngf, nc) 
         ckpt_path = os.path.join(ckpt_dir, args.pth_name)
         print(f"Load model from: {ckpt_path}")
@@ -226,12 +229,12 @@ if __name__ == '__main__':
         # Create the Generator
         netG = Generator(nz, ngf, nc).to(device)
         netG.apply(weights_init)
-        #print(netG)
+        print(netG)
 
         # Create the Discriminator
         netD = Discriminator(nc, ndf).to(device)
         netD.apply(weights_init)
-        #print(netD)
+        print(netD)
 
         # resume_path = os.path.join("ckpt2-1_pei", "G_0.pth")
         # print(f"Load model from: {resume_path}")
