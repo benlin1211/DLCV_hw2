@@ -257,12 +257,12 @@ def ddpm_schedules(beta1, beta2, T):
 
     return {
         "alpha_t": alpha_t,  # \alpha_t
-        "oneover_sqrta": oneover_sqrta,  # 1/\sqrt{\alpha_t}
-        "sqrt_beta_t": sqrt_beta_t,  # \sqrt{\beta_t}
-        "alphabar_t": alphabar_t,  # \bar{\alpha_t}
-        "sqrtab": sqrtab,  # \sqrt{\bar{\alpha_t}}
-        "sqrtmab": sqrtmab,  # \sqrt{1-\bar{\alpha_t}}
-        "mab_over_sqrtmab": mab_over_sqrtmab_inv,  # (1-\alpha_t)/\sqrt{1-\bar{\alpha_t}}
+        "oneover_sqrta": oneover_sqrta,  # 1/\sqrt{\alpha_t} # sampling
+        "sqrt_beta_t": sqrt_beta_t,  # \sqrt{\beta_t}  # sampling
+        "alphabar_t": alphabar_t,  # \bar{\alpha_t} 
+        "sqrtab": sqrtab,  # \sqrt{\bar{\alpha_t}} # forwarding
+        "sqrtmab": sqrtmab,  # \sqrt{1-\bar{\alpha_t}}  # forwarding
+        "mab_over_sqrtmab": mab_over_sqrtmab_inv,  # (1-\alpha_t)/\sqrt{1-\bar{\alpha_t}} # sampling
     }
 
 
