@@ -195,8 +195,7 @@ if __name__ == '__main__':
     else:
         device = torch.device("cpu")
     print("Using", device)
-    device = torch.device("cuda")
-    
+  
     # Root directory for dataset
     same_seeds(1)
     output_dir = args.output_dir
