@@ -381,7 +381,7 @@ def eval_mnist(config):
 
     ckpt_path = os.path.join(config["ckpt_dir"], "model_350.pth")
     print(f"Load model from: {ckpt_path}")
-    ddpm.load_state_dict(torch.load(ckpt_path))
+    ddpm.load_state_dict(torch.load(ckpt_path, map_location='cuda'))
 
     ddpm.eval()
 

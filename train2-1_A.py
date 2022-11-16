@@ -204,7 +204,7 @@ if __name__ == '__main__':
         netG = Generator(nz, ngf, nc) 
         ckpt_path = os.path.join(ckpt_dir, args.pth_name)
         print(f"Load model from: {ckpt_path}")
-        netG.load_state_dict(torch.load(ckpt_path))
+        netG.load_state_dict(torch.load(ckpt_path, map_location='cuda'))
         netG = netG.to(device)
         netG.eval()
 

@@ -224,7 +224,7 @@ if __name__ == '__main__':
     # load model
     my_net = CNNModel()
     ckpt_name = os.path.join(ckpt_dir, "best_model_41.pth")
-    my_net.load_state_dict(torch.load(ckpt_name))
+    my_net.load_state_dict(torch.load(ckpt_name, map_location='cuda'))
     my_net = my_net.to(device)
     my_net.eval()
 
